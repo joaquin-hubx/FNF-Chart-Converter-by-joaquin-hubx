@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FNF Chart Converter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #7c3aed;
+    --accent2: #a855f7;
+    --accent-glow: rgba(124,58,237,0.25);
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #eab308;
+    --text: #e8e8f0;
+    --text-muted: #6b6b8a;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  }
+
+  header {
+    padding: 28px 32px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-mark {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 14px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-family: var(--mono);
+  }
+
+  .badge {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent2);
+    border: 1px solid var(--accent);
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--accent-glow);
+  }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* Engine selector */
+  .engine-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .engine-picker {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .engine-picker label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .engine-picker select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b8a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .engine-picker select:focus { border-color: var(--accent); }
+
+  .arrow-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .swap-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 40px; height: 40px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.15s, background 0.15s;
+    color: var(--text-muted);
+    font-size: 18px;
+  }
+  .swap-btn:hover { border-color: var(--accent); background: var(--accent-glow); color: var(--accent2); }
+
+  /* Drop zone */
+  .dropzone {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .dropzone.over { border-color: var(--accent); background: var(--accent-glow); }
+  .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .dropzone-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .dropzone h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .dropzone p {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  /* Files list */
+  .files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .file-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .file-icon {
+    width: 32px; height: 32px;
+    background: var(--surface2);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .file-info { flex: 1; min-width: 0; }
+  .file-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--mono);
+  }
+  .file-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .file-status {
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 3px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .file-status.ok { color: var(--green); background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); }
+  .file-status.err { color: var(--red); background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); }
+  .file-status.pending { color: var(--yellow); background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.2); }
+
+  .file-remove {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: 16px; padding: 4px;
+    transition: color 0.15s;
+  }
+  .file-remove:hover { color: var(--red); }
+
+  /* Options panel */
+  .options-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .option-group label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+
+  .toggle {
+    width: 36px; height: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); border-color: var(--accent); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(16px); }
+
+  .option-group input[type="text"],
+  .option-group input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .option-group input:focus { border-color: var(--accent); }
+
+  /* Log */
+  .log-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .log-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .log-clear {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; font-family: var(--mono); font-size: 11px;
+    transition: color 0.15s;
+  }
+  .log-clear:hover { color: var(--text); }
+
+  .log-content {
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    max-height: 180px;
+    overflow-y: auto;
+    color: var(--text-muted);
+  }
+
+  .log-line { display: flex; gap: 10px; }
+  .log-line .tag { flex-shrink: 0; }
+  .log-line.info .tag { color: var(--accent2); }
+  .log-line.ok .tag { color: var(--green); }
+  .log-line.err .tag { color: var(--red); }
+  .log-line.warn .tag { color: var(--yellow); }
+  .log-line.ok .msg, .log-line.info .msg { color: var(--text); }
+  .log-line.err .msg { color: var(--red); }
+  .log-line.warn .msg { color: var(--yellow); }
+
+  /* Convert button */
+  .btn-convert {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 16px 32px;
+    border-radius: 10px;
+    cursor: pointer;
+    width: 100%;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: -0.2px;
+  }
+  .btn-convert:hover { opacity: 0.9; }
+  .btn-convert:active { transform: scale(0.99); }
+  .btn-convert:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .section-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 10px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 600px) {
+    .engine-row { grid-template-columns: 1fr; }
+    .arrow-box { transform: rotate(90deg); }
+    .options-panel { grid-template-columns: 1fr; }
+    header { padding: 20px 16px; }
+    main { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">FNF</div>
+  <div>
+    <h1>Chart Converter</h1>
+    <p>by Alonso Studio</p>
+  </div>
+  <span class="badge">v1.0</span>
+</header>
+
+<main>
+
+  <!-- Engine selector -->
+  <div>
+    <div class="section-title">Engine</div>
+    <div class="engine-row">
+      <div class="engine-picker">
+        <label>Desde</label>
+        <select id="fromEngine">
+          <option value="psych">Psych Engine</option>
+          <option value="vslice">V-Slice (FNF 2.0)</option>
+          <option value="codename">Codename Engine</option>
+          <option value="kade">Kade Engine</option>
+          <option value="base">Base Game (Legacy)</option>
+        </select>
+      </div>
+      <div class="arrow-box">
+        <button class="swap-btn" id="swapBtn" title="Intercambiar">⇄</button>
+      </div>
+      <div class="engine-picker">
+        <label>Hacia</label>
+        <select id="toEngine">
+          <option value="vslice">V-Slice (FNF 2.0)</option>
+          <option value="psych">Psych Engine</option>
+          <option value="codename">Codename Engine</option>
+          <option value="kade">Kade Engine</option>
+          <option value="base">Base Game (Legacy)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dropzone -->
+  <div>
+    <div class="section-title">Archivos</div>
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" multiple accept=".json,.xml">
+      <span class="dropzone-icon">📂</span>
+      <h2>Arrastra tus charts aquí</h2>
+      <p>.json (Psych / V-Slice / Kade / Base) · .xml (Codename)</p>
+    </div>
+  </div>
+
+  <!-- Files list -->
+  <div class="files-list" id="filesList"></div>
+
+  <!-- Options -->
+  <div>
+    <div class="section-title">Opciones</div>
+    <div class="options-panel">
+      <div class="option-group">
+        <label>Ajustes de conversión</label>
+        <div class="toggle-row" onclick="toggleOpt('keepEvents')">
+          <div class="toggle on" id="tog-keepEvents"></div>
+          <span>Conservar eventos</span>
+        </div>
+        <div class="toggle-row" onclick="toggleOpt('keepMeta')">
+          <div class="toggle on" id="tog-keepMeta"></div>
+          <span>Conservar metadata</span>
+        </div>
+        <div class="toggle-row" onclick="toggleOpt('autoOffset')">
+          <div class="toggle on" id="tog-autoOffset"></div>
+          <span>Auto-offset de tiempo</span>
+        </div>
+        <div class="toggle-row" onclick="toggleOpt('convertSustains')">
+          <div class="toggle on" id="tog-convertSustains"></div>
+          <span>Convertir sustains</span>
+        </div>
+      </div>
+      <div class="option-group">
+        <label>Metadata extra</label>
+        <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">Nombre de canción</label>
+        <input type="text" id="optSongName" placeholder="(del archivo)" style="margin-bottom:12px;">
+        <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">BPM override</label>
+        <input type="number" id="optBpm" placeholder="(del chart)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-box">
+    <div class="log-header">
+      <span>LOG DE CONVERSIÓN</span>
+      <button class="log-clear" onclick="clearLog()">limpiar</button>
+    </div>
+    <div class="log-content" id="logContent">
+      <div class="log-line info"><span class="tag">[INFO]</span><span class="msg">Listo. Carga un chart para comenzar.</span></div>
+    </div>
+  </div>
+
+  <!-- Convert -->
+  <button class="btn-convert" id="convertBtn" onclick="convertAll()" disabled>
+    Convertir charts →
+  </button>
+
+</main>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────
+const opts = { keepEvents: true, keepMeta: true, autoOffset: true, convertSustains: true };
+let loadedFiles = [];
+
+function toggleOpt(k) {
+  opts[k] = !opts[k];
+  document.getElementById('tog-' + k).classList.toggle('on', opts[k]);
+}
+
+// ─── Log ─────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const el = document.getElementById('logContent');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  const tags = { info: '[INFO]', ok: '[OK]', err: '[ERR]', warn: '[WARN]' };
+  line.innerHTML = `<span class="tag">${tags[type]}</span><span class="msg">${msg}</span>`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('logContent').innerHTML = '';
+}
+
+// ─── Dropzone ────────────────────────────────────────────────────
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('over');
+  handleFiles([...e.dataTransfer.files]);
+});
+document.getElementById('fileInput').addEventListener('change', e => {
+  handleFiles([...e.target.files]);
+  e.target.value = '';
+});
+
+function handleFiles(files) {
+  files.forEach(f => {
+    if (loadedFiles.find(x => x.file.name === f.name)) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const entry = { file: f, raw: ev.target.result, status: 'pending' };
+      loadedFiles.push(entry);
+      renderFiles();
+      log(`Cargado: ${f.name}`, 'info');
+    };
+    reader.readAsText(f);
+  });
+}
+
+function removeFile(name) {
+  loadedFiles = loadedFiles.filter(x => x.file.name !== name);
+  renderFiles();
+}
+
+function renderFiles() {
+  const el = document.getElementById('filesList');
+  el.innerHTML = '';
+  loadedFiles.forEach(entry => {
+    const ext = entry.file.name.split('.').pop().toLowerCase();
+    const icon = ext === 'xml' ? '📄' : '🎵';
+    const statusMap = { pending: 'Pendiente', ok: 'OK', err: 'Error' };
+    el.innerHTML += `
+      <div class="file-item">
+        <div class="file-icon">${icon}</div>
+        <div class="file-info">
+          <div class="file-name">${entry.file.name}</div>
+          <div class="file-meta">${(entry.file.size/1024).toFixed(1)} KB · .${ext}</div>
+        </div>
+        <span class="file-status ${entry.status}">${statusMap[entry.status] || entry.status}</span>
+        <button class="file-remove" onclick="removeFile('${entry.file.name}')">✕</button>
+      </div>`;
+  });
+  document.getElementById('convertBtn').disabled = loadedFiles.length === 0;
+}
+
+// ─── Swap engines ────────────────────────────────────────────────
+document.getElementById('swapBtn').onclick = () => {
+  const a = document.getElementById('fromEngine');
+  const b = document.getElementById('toEngine');
+  [a.value, b.value] = [b.value, a.value];
+};
+
+// ─── PARSERS ─────────────────────────────────────────────────────
+
+// Internal format: { songName, bpm, speed, needsVoices, player1, player2, stage, notes, events }
+// notes: [{ time_ms, lane, length_ms, type }]  lane 0-3 = opp, 4-7 = player
+// events: [{ time_ms, name, params }]
+
+function parsePsych(raw, fileName) {
+  const data = JSON.parse(raw);
+  const song = data.song;
+  const bpm = song.bpm;
+  const speed = song.speed || 1;
+  let stepCrochet = (60 / bpm * 1000) / 4;
+  const notes = [];
+  const events = [];
+  let currentBpm = bpm;
+  let currentStep = 0;
+  let currentMs = 0;
+
+  song.notes.forEach(section => {
+    if (section.changeBPM && section.bpm) {
+      currentBpm = section.bpm;
+      stepCrochet = (60 / currentBpm * 1000) / 4;
+    }
+    section.sectionNotes.forEach(n => {
+      const stepTime = n[0];
+      const lane = section.mustHitSection ? (n[1] >= 4 ? n[1] - 4 : n[1] + 4) : n[1];
+      const sustain = n[2] || 0;
+      notes.push({ time_ms: stepTime, lane: lane % 8, length_ms: sustain, type: n[3] || '' });
+    });
+    if (opts.keepEvents && section.sectionNotes) {
+      // psych events are in separate event track
+    }
+  });
+
+  // Psych events track
+  if (opts.keepEvents && song.events) {
+    song.events.forEach(ev => {
+      events.push({ time_ms: ev[0], name: ev[1][0][0], params: { v1: ev[1][0][1], v2: ev[1][0][2] } });
+    });
+  }
+
+  return {
+    songName: song.song || fileName.replace(/\.json$/, ''),
+    bpm, speed,
+    needsVoices: song.needsVoices !== false,
+    player1: song.player1 || 'bf',
+    player2: song.player2 || 'dad',
+    stage: song.stage || 'stage',
+    notes, events
+  };
+}
+
+function parseVSlice(raw, fileName) {
+  const data = JSON.parse(raw);
+  const meta = data.scrollSpeed || {};
+  const bpm = data.timeChanges?.[0]?.bpm || 120;
+  const speed = Object.values(data.scrollSpeed || {})[0] || 1;
+  const notes = [];
+  const events = [];
+
+  (data.notes?.default || data.notes?.normal || Object.values(data.notes || {})[0] || []).forEach(n => {
+    notes.push({ time_ms: n.t, lane: n.d, length_ms: n.l || 0, type: n.k || '' });
+  });
+
+  if (opts.keepEvents) {
+    (data.events || []).forEach(ev => {
+      events.push({ time_ms: ev.t, name: ev.e, params: ev.v || {} });
+    });
+  }
+
+  return {
+    songName: data.songName || fileName.replace(/\.json$/, ''),
+    bpm, speed,
+    needsVoices: true,
+    player1: 'bf', player2: 'dad', stage: 'stage',
+    notes, events
+  };
+}
+
+function parseCodename(raw, fileName) {
+  // Parse XML
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(raw, 'text/xml');
+  const songEl = doc.querySelector('Song');
+  if (!songEl) throw new Error('XML inválido: no se encontró <Song>');
+
+  const bpm = parseFloat(songEl.getAttribute('bpm') || '120');
+  const speed = parseFloat(songEl.getAttribute('speed') || '1');
+  const notes = [];
+  const events = [];
+  let stepCrochet = (60 / bpm * 1000) / 4;
+
+  doc.querySelectorAll('Section').forEach(sec => {
+    const mustHit = sec.getAttribute('mustHitSection') === 'true';
+    doc.querySelectorAll('note', sec).forEach(n => {
+      const step = parseFloat(n.getAttribute('time') || '0');
+      const rawLane = parseInt(n.getAttribute('id') || '0');
+      const lane = mustHit ? (rawLane >= 4 ? rawLane - 4 : rawLane + 4) : rawLane;
+      const sustain = parseFloat(n.getAttribute('sustain') || '0');
+      const ms = step * stepCrochet;
+      notes.push({ time_ms: ms, lane: lane % 8, length_ms: sustain * stepCrochet, type: '' });
+    });
+  });
+
+  if (opts.keepEvents) {
+    doc.querySelectorAll('event, Event').forEach(ev => {
+      const step = parseFloat(ev.getAttribute('time') || ev.getAttribute('step') || '0');
+      notes.push;
+      events.push({
+        time_ms: step * stepCrochet,
+        name: ev.getAttribute('name') || ev.getAttribute('event') || '',
+        params: { v1: ev.getAttribute('value1') || '', v2: ev.getAttribute('value2') || '' }
+      });
+    });
+  }
+
+  return {
+    songName: songEl.getAttribute('name') || fileName.replace(/\.xml$/, ''),
+    bpm, speed, needsVoices: true,
+    player1: songEl.getAttribute('player1') || 'bf',
+    player2: songEl.getAttribute('player2') || 'dad',
+    stage: songEl.getAttribute('stage') || 'stage',
+    notes, events
+  };
+}
+
+function parseKade(raw, fileName) {
+  // Kade is mostly Psych-compatible
+  return parsePsych(raw, fileName);
+}
+
+function parseBase(raw, fileName) {
+  return parsePsych(raw, fileName);
+}
+
+// ─── SERIALIZERS ─────────────────────────────────────────────────
+
+function toVSlice(chart) {
+  const bpm = parseInt(document.getElementById('optBpm').value) || chart.bpm;
+  const songName = document.getElementById('optSongName').value || chart.songName;
+  const speed = chart.speed;
+  const msCrochet = (60 / bpm * 1000) / 4;
+
+  const notesArr = chart.notes.map(n => {
+    const obj = { t: Math.round(n.time_ms), d: n.lane };
+    if (n.length_ms > 0) obj.l = Math.round(n.length_ms);
+    if (n.type) obj.k = n.type;
+    return obj;
+  });
+
+  const out = {
+    version: '2.0.0',
+    songName: songName,
+    scrollSpeed: { default: speed },
+    timeChanges: [{ t: 0, bpm: bpm, n: 4, d: 4, bt: [4, 4, 4, 4] }],
+    notes: { default: notesArr },
+    events: opts.keepEvents ? chart.events.map(ev => ({ t: Math.round(ev.time_ms), e: ev.name, v: ev.params })) : []
+  };
+
+  return JSON.stringify(out, null, 2);
+}
+
+function toPsych(chart) {
+  const bpm = parseInt(document.getElementById('optBpm').value) || chart.bpm;
+  const songName = document.getElementById('optSongName').value || chart.songName;
+  const speed = chart.speed;
+  const msCrochet = (60 / bpm * 1000) / 4;
+  const sectionMs = msCrochet * 16;
+
+  // group notes into sections
+  const allMs = chart.notes.length > 0 ? Math.max(...chart.notes.map(n => n.time_ms)) : 0;
+  const numSections = Math.ceil((allMs + sectionMs) / sectionMs);
+  const sections = [];
+
+  for (let i = 0; i < numSections; i++) {
+    const sectionStart = i * sectionMs;
+    const sectionEnd = (i + 1) * sectionMs;
+    const sectionNotes = chart.notes
+      .filter(n => n.time_ms >= sectionStart && n.time_ms < sectionEnd)
+      .map(n => {
+        const psychLane = n.lane >= 4 ? n.lane - 4 : n.lane + 4;
+        return [Math.round(n.time_ms), psychLane, opts.convertSustains ? Math.round(n.length_ms) : 0, n.type || false];
+      });
+    sections.push({ sectionNotes, mustHitSection: true, lengthInSteps: 16, bpm, changeBPM: false });
+  }
+
+  const psychEvents = opts.keepEvents ? chart.events.map(ev => [
+    Math.round(ev.time_ms), [[ev.name, ev.params?.v1 || '', ev.params?.v2 || '']]
+  ]) : [];
+
+  const out = {
+    song: {
+      song: songName,
+      notes: sections,
+      events: psychEvents,
+      bpm, speed, needsVoices: chart.needsVoices,
+      player1: chart.player1, player2: chart.player2,
+      stage: chart.stage,
+      validScore: true
+    }
+  };
+
+  return JSON.stringify(out, null, 2);
+}
+
+function toCodename(chart) {
+  const bpm = parseInt(document.getElementById('optBpm').value) || chart.bpm;
+  const songName = document.getElementById('optSongName').value || chart.songName;
+  const speed = chart.speed;
+  const msCrochet = (60 / bpm * 1000) / 4;
+  const sectionMs = msCrochet * 16;
+
+  const allMs = chart.notes.length > 0 ? Math.max(...chart.notes.map(n => n.time_ms)) : 0;
+  const numSections = Math.ceil((allMs + sectionMs) / sectionMs);
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  xml += `<Song name="${songName}" bpm="${bpm}" speed="${speed}" player1="${chart.player1}" player2="${chart.player2}" stage="${chart.stage}">\n`;
+
+  for (let i = 0; i < numSections; i++) {
+    const sectionStart = i * sectionMs;
+    const sectionEnd = (i + 1) * sectionMs;
+    xml += `  <Section mustHitSection="true">\n`;
+
+    chart.notes
+      .filter(n => n.time_ms >= sectionStart && n.time_ms < sectionEnd)
+      .forEach(n => {
+        const step = n.time_ms / msCrochet;
+        const sustainSteps = opts.convertSustains ? n.length_ms / msCrochet : 0;
+        const cnLane = n.lane >= 4 ? n.lane - 4 : n.lane + 4;
+        xml += `    <note time="${step.toFixed(3)}" id="${cnLane}" sustain="${sustainSteps.toFixed(3)}"`;
+        if (n.type) xml += ` type="${n.type}"`;
+        xml += `/>\n`;
+      });
+
+    xml += `  </Section>\n`;
+  }
+
+  if (opts.keepEvents) {
+    chart.events.forEach(ev => {
+      const step = ev.time_ms / msCrochet;
+      xml += `  <Event time="${step.toFixed(3)}" name="${ev.name}" value1="${ev.params?.v1 || ''}" value2="${ev.params?.v2 || ''}"/>\n`;
+    });
+  }
+
+  xml += `</Song>`;
+  return xml;
+}
+
+// ─── Main converter ───────────────────────────────────────────────
+
+function detectFormat(raw, fileName) {
+  if (fileName.endsWith('.xml')) return 'codename';
+  try {
+    const d = JSON.parse(raw);
+    if (d.version && d.notes && d.scrollSpeed) return 'vslice';
+    if (d.song && d.song.notes && Array.isArray(d.song.notes)) return 'psych';
+    if (d.song && d.song.sectionLengths) return 'kade';
+    return 'psych';
+  } catch { return null; }
+}
+
+function convertAll() {
+  const from = document.getElementById('fromEngine').value;
+  const to = document.getElementById('toEngine').value;
+
+  if (from === to) {
+    log('Los engines de origen y destino son iguales.', 'warn');
+    return;
+  }
+
+  log(`Convirtiendo ${loadedFiles.length} archivo(s): ${from} → ${to}`, 'info');
+
+  loadedFiles.forEach(entry => {
+    try {
+      const detected = detectFormat(entry.raw, entry.file.name);
+      const useFrom = detected || from;
+
+      log(`Procesando: ${entry.file.name} (detectado: ${useFrom})`, 'info');
+
+      // Parse
+      let chart;
+      if (useFrom === 'psych' || useFrom === 'base') chart = parsePsych(entry.raw, entry.file.name);
+      else if (useFrom === 'vslice') chart = parseVSlice(entry.raw, entry.file.name);
+      else if (useFrom === 'codename') chart = parseCodename(entry.raw, entry.file.name);
+      else if (useFrom === 'kade') chart = parseKade(entry.raw, entry.file.name);
+      else throw new Error('Engine no soportado: ' + useFrom);
+
+      log(`  Notas: ${chart.notes.length} | BPM: ${chart.bpm} | Eventos: ${chart.events.length}`, 'info');
+
+      // Serialize
+      let output, ext;
+      if (to === 'vslice') { output = toVSlice(chart); ext = 'json'; }
+      else if (to === 'psych' || to === 'base') { output = toPsych(chart); ext = 'json'; }
+      else if (to === 'codename') { output = toCodename(chart); ext = 'xml'; }
+      else if (to === 'kade') { output = toPsych(chart); ext = 'json'; }
+      else throw new Error('Engine destino no soportado: ' + to);
+
+      // Download
+      const baseName = entry.file.name.replace(/\.[^.]+$/, '');
+      const outName = `${baseName}-${to}.${ext}`;
+      const blob = new Blob([output], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = outName; a.click();
+      URL.revokeObjectURL(url);
+
+      entry.status = 'ok';
+      log(`  ✓ Guardado como: ${outName}`, 'ok');
+    } catch (err) {
+      entry.status = 'err';
+      log(`  ✗ ${entry.file.name}: ${err.message}`, 'err');
+    }
+    renderFiles();
+  });
+
+  log('Conversión completada.', 'ok');
+}
+</script>
+</body>
+</html>
